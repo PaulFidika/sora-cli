@@ -79,11 +79,12 @@ Default is landscape (1280x720) and 8 seconds.
 ### 5. Animate an image (image-to-video)
 
 ```bash
-sora-cli --file tanjiro.jpg -p "The swordsman's eyes glow as energy swirls around them" -o power-up.mp4
+sora-cli --first-frame tanjiro.jpg -p "The swordsman's eyes glow as energy swirls around them" -o power-up.mp4
 ```
 
 **Supported formats**: JPEG, PNG, WebP
-Images are automatically resized to match video dimensions (crops from center if needed). Sora-API is very specific about the dimensions of input images.
+
+The image becomes the **first frame** of your generated video. Images are automatically resized to match video dimensions (crops from center if needed). Sora API is very specific about the dimensions of input images.
 
 ### 6. Remix a previous video
 
@@ -106,22 +107,22 @@ sora-cli --list
 **Important notes:**
 - `--remix` only works with Sora-generated videos from your history (use `@last`, `@0`, `@1`, etc., or a video ID)
 - When remixing, the **duration, resolution, and model are inherited** from the original video; you cannot ask for a longer video, for example.
-- This is currently the **only way to modify videos** - video-to-video via `--file` is not yet available.
+- This is currently the **only way to modify videos** - video-to-video via `--video` is not yet available.
 
 ### 7. Transform an arbitrary video (video-to-video)
 
 **⚠️ IMPORTANT: Video-to-video is currently NOT available through the Sora API.**
 
-Using `--file` with video files will result in an error: **"Video inpaint is not available for your organization."**
+The `--video` flag is not currently functional. Using it will result in an error: **"Video-to-video is not currently available through the Sora API."**
 
-This is a restricted feature that OpenAI has not yet made publicly available. According to the [official documentation](https://cookbook.openai.com/examples/sora/sora2_prompting_guide), only **image-to-video** (JPEG, PNG, WebP) is currently supported.
+This is a restricted feature that OpenAI has not yet made publicly available. According to the [official documentation](https://cookbook.openai.com/examples/sora/sora2_prompting_guide), only **image-to-video** (JPEG, PNG, WebP) is currently supported via `--first-frame`.
 
-**To modify existing videos, use `--remix` instead** (see section 6), which works with Sora-generated videos from your history.
+**To modify existing Sora-generated videos, use `--remix` instead** (see section 6), which works with videos from your history.
 
 ~~Example (not currently available):~~
 ```bash
-# This will NOT work - video inpainting is restricted
-sora-cli --file fight-scene.mp4 -p "Add energy aura effects and speed lines" -o enhanced-fight.mp4
+# This will NOT work - video-to-video is not available
+sora-cli --video fight-scene.mp4 -p "Add energy aura effects and speed lines" -o enhanced-fight.mp4
 ```
 
 ## Important Notes
@@ -129,3 +130,14 @@ sora-cli --file fight-scene.mp4 -p "Add energy aura effects and speed lines" -o 
 - **⚠️ Videos expire after 1 hour!** Once a video completes, you have ~1 hour to download it before it becomes unavailable for download. This CLI automatically downloads upon completion. Videos will still be available for remixes, however.
 - **Cameos** (personal likeness features) are not supported via the API - they require the Sora mobile app.
 - Video generation history is stored in `~/.sora-cli/history.json` (limited to 100 most recent entries).
+
+## Guardrails and Restrictions
+
+The API enforces several content restrictions:
+
+- Only content suitable for audiences under 18 (a setting to bypass this restriction will be available in the future).
+- Copyrighted characters and copyrighted music will be rejected.
+- Real people—including public figures—cannot be generated.
+- Input images with faces of humans are currently rejected.
+
+Make sure prompts, reference images, and transcripts respect these rules to avoid failed generations.

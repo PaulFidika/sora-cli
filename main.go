@@ -82,7 +82,8 @@ func main() {
 		output      string
 		usePro      bool
 		baseURL     string
-		inputFile   string
+		firstFrame  string
+		videoFile   string
 		remixFrom   string
 		listHistory bool
 		seconds     string
@@ -92,7 +93,8 @@ func main() {
 
 	flag.StringVarP(&prompt, "prompt", "p", "", "Text prompt for the video. If empty, reads interactively.")
 	flag.StringVarP(&output, "output", "o", "", "Write output to <file>. Use '-' for stdout-only (no save). Default saves to {video_id}.mp4")
-	flag.StringVar(&inputFile, "file", "", "Path to input image or video file (for image-to-video or video-to-video generation)")
+	flag.StringVar(&firstFrame, "first-frame", "", "Path to input image (JPEG, PNG, WebP) to use as the first frame of the video")
+	flag.StringVar(&videoFile, "video", "", "Path to input video file (NOT CURRENTLY AVAILABLE - use --remix instead)")
 	flag.StringVar(&remixFrom, "remix", "", "Remix from previous Sora video (@last, @0, @1, or video_id)")
 	flag.BoolVar(&listHistory, "list", false, "List generation history and exit")
 	flag.BoolVar(&usePro, "pro", false, "Use sora-2-pro model (better quality at same 720p resolution, 3x cost)")
@@ -124,9 +126,23 @@ func main() {
 		if len(conflictNames) > 0 {
 			fmt.Fprintf(os.Stderr, "Error: Cannot use %s with --remix\n", strings.Join(conflictNames, ", "))
 			fmt.Fprintln(os.Stderr, "When remixing, duration, resolution, and model are inherited from the original video.")
-			fmt.Fprintln(os.Stderr, "To transform a video with different parameters, use --file instead.")
 			os.Exit(2)
 		}
+	}
+
+	// Validate --video flag (not currently supported)
+	if videoFile != "" {
+		fmt.Fprintln(os.Stderr, "Error: Video-to-video is not currently available through the Sora API.")
+		fmt.Fprintln(os.Stderr, "To modify existing Sora-generated videos, use --remix instead.")
+		fmt.Fprintln(os.Stderr, "See README section 6 for details on remixing.")
+		os.Exit(2)
+	}
+
+	// Cannot use both --first-frame and --remix
+	if firstFrame != "" && remixFrom != "" {
+		fmt.Fprintln(os.Stderr, "Error: Cannot use both --first-frame and --remix.")
+		fmt.Fprintln(os.Stderr, "Use --first-frame for image-to-video, or --remix to modify existing Sora videos.")
+		os.Exit(2)
 	}
 
 	// Validate seconds
@@ -230,7 +246,7 @@ func main() {
 		jobID, err = remixVideo(ctx, client, baseURL, apiKey, resolvedID, prompt)
 	} else {
 		// Create new video
-		jobID, err = createVideoJob(ctx, client, baseURL, apiKey, model, prompt, inputFile, videoSize, seconds)
+		jobID, err = createVideoJob(ctx, client, baseURL, apiKey, model, prompt, firstFrame, videoSize, seconds)
 	}
 
 	if err != nil {
@@ -312,6 +328,7 @@ DOWNLOAD:
 	// Report generation stats
 	if output != "-" {
 		duration := time.Since(startTime)
+		infof("Video saved to: %s\n", output)
 		infof("Total generation time: %s\n", formatDuration(duration))
 	}
 
@@ -326,10 +343,10 @@ DOWNLOAD:
 		CreatedAt:   time.Now().UTC().Format(time.RFC3339),
 		OutputFile:  output,
 		Model:       model,
-		ImageInput:  &inputFile,
+		ImageInput:  &firstFrame,
 		RemixedFrom: remixFromVideoID,
 	}
-	if inputFile == "" {
+	if firstFrame == "" {
 		entry.ImageInput = nil
 	}
 	if err := addToHistory(entry); err != nil {
