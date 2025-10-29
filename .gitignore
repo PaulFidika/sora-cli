@@ -6,21 +6,20 @@ bin/
 *.so
 *.dylib
 *.test
-sora-cli
+sora-cli*
 
 # Build and editor files
 dist/
 .DS_Store
 .idea/
 .vscode/
-*.log
 
-# Cache
-**/.cache/
-**/tmp/
 
 # Environment files
 .env
 
 # Files
+*.jpg
+*.png
+*.webp
 *.mp4

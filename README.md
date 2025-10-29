@@ -1,89 +1,131 @@
-# Sora CLI – Quick Start
+# Sora CLI
 
-Environment
-- **Important**: To use Sora API, you must verify your organization by scanning your photo ID through OpenAI's platform.
-- Set your API key:
+A command-line tool for generating videos with OpenAI's Sora API.
 
+## Installation
+
+Install using standard Go tools:
+
+```bash
+go install github.com/fidika/sora-cli@latest
+```
+
+This installs `sora-cli` as a system binary in your `$GOPATH/bin` directory (typically `~/go/bin`).
+
+## Configuration
+
+**Note:**: To use Sora API, you must verify your organization by scanning your photo ID through OpenAI's platform.
+
+Set your API key using either method:
+
+**Option 1: Environment variable**
 ```bash
 export OPENAI_API_KEY=sk-...
 ```
 
-- Or create a `.env` file in this directory (optional):
-
+**Option 2: .env file (in your working directory)**
 ```
 OPENAI_API_KEY=sk-...
 ```
 
-Examples
-- Save to a specific file:
-```
-go run . -p "A child flying a kite" -o child-kite.mp4
+## Usage
+
+### 1. Generate a video from a prompt
+
+```bash
+sora-cli -p "A warrior with glowing blue energy charging up for an attack"
 ```
 
-- Use Pro model (higher quality, 1080p):
-```
-go run . --pro -p "A child flying a kite" -o child-kite-hd.mp4
+By default, this saves to `video_{id}.mp4` in your current directory.
+
+### 2. Specify an output file
+
+```bash
+sora-cli -p "Two swordsmen clashing in a lightning storm" -o epic-battle.mp4
 ```
 
-- Generate portrait video:
-```
-go run . --portrait -p "A person walking down a street" -o portrait.mp4
-```
-
-- Specify duration (4, 8, or 12 seconds):
-```
-go run . --seconds 8 -p "A scenic mountain landscape" -o short-video.mp4
+Use `-o -` to pipe to stdout; useful for composition. Note that the video will still be saved to your hard-drive in the current working dir with the default filename:
+```bash
+sora-cli -p "A ninja vanishing in a burst of smoke" -o - | ffplay -i pipe:0
 ```
 
-- Combine options (portrait + duration + pro):
-```
-go run . --pro --portrait --seconds 12 -p "City lights at night" -o city-vertical.mp4
+### 3. Use Sora-2 Pro (better quality)
+
+```bash
+sora-cli --pro -p "A dramatic beam clash between rivals, energy crackling" -o beam-clash.mp4
 ```
 
-- Animate an image (image-to-video):
-```
-go run . -i photo.jpg -p "The camera pans slowly across the scene" -o animated.mp4
+**Note**: Pro mode is **3x more expensive** ($0.30/sec vs $0.10/sec) but delivers noticeably better quality at the same 720p resolution - sharper textures, smoother motion, richer colors, and better scene continuity.
+
+### 4. Specify orientation and duration
+
+**Portrait mode** (720x1280):
+```bash
+sora-cli --portrait -p "A martial artist performing a rising uppercut" -o uppercut.mp4
 ```
 
-- Remix the most recent video:
-```
-go run . --remix @last -p "Make it sunset" -o child-kite-sunset.mp4
-```
-
-- Remix by index (0 = most recent):
-```
-go run . --remix @1 -p "Add dramatic clouds"
+**Specify duration** (4, 8, or 12 seconds):
+```bash
+sora-cli --seconds 12 -p "A mage summoning a fireball that grows larger" -o fireball.mp4
 ```
 
-- Remix by filename:
-```
-go run . --remix child-kite.mp4 -p "Speed up the motion"
-```
-
-- List your generation history:
-```
-go run . --list
+**Combine options**:
+```bash
+sora-cli --pro --portrait --seconds 12 -p "A hero's transformation sequence with glowing aura" -o transformation.mp4
 ```
 
-- Pipe to another command (stdout by default when no -o/-O):
-```
-go run . --prompt "A child flying a kite" | ffplay -i pipe:0
+Default is landscape (1280x720) and 8 seconds.
+
+### 5. Animate an image (image-to-video)
+
+```bash
+sora-cli --file tanjiro.jpg -p "The swordsman's eyes glow as energy swirls around them" -o power-up.mp4
 ```
 
-- Save and pipe simultaneously (tee):
-```
-go run . -p "A child flying a kite" -o - | tee child-kite.mp4 | ffmpeg -i pipe:0 -c:v libx264 -crf 18 processed.mp4
+**Supported formats**: JPEG, PNG, WebP
+Images are automatically resized to match video dimensions (crops from center if needed). Sora-API is very specific about the dimensions of input images.
+
+### 6. Remix a previous video
+
+Remix a video you've already generated with Sora:
+
+```bash
+# Remix the most recent video
+sora-cli --remix @last -p "Add lightning effects to the attack" -o lightning-version.mp4
+
+# Remix by index (0 = most recent, 1 = second most recent, etc.)
+sora-cli --remix @1 -p "Make the background more dramatic with storm clouds"
+
+# Remix by video ID
+sora-cli --remix video_6901abc123def456 -p "Slow down the motion for dramatic effect"
+
+# List your generation history
+sora-cli --list
 ```
 
-- Use the remote name (like curl -O):
-```
-go run . -p "A child flying a kite" -O
+**Important notes:**
+- `--remix` only works with Sora-generated videos from your history (use `@last`, `@0`, `@1`, etc., or a video ID)
+- When remixing, the **duration, resolution, and model are inherited** from the original video; you cannot ask for a longer video, for example.
+- This is currently the **only way to modify videos** - video-to-video via `--file` is not yet available.
+
+### 7. Transform an arbitrary video (video-to-video)
+
+**⚠️ IMPORTANT: Video-to-video is currently NOT available through the Sora API.**
+
+Using `--file` with video files will result in an error: **"Video inpaint is not available for your organization."**
+
+This is a restricted feature that OpenAI has not yet made publicly available. According to the [official documentation](https://cookbook.openai.com/examples/sora/sora2_prompting_guide), only **image-to-video** (JPEG, PNG, WebP) is currently supported.
+
+**To modify existing videos, use `--remix` instead** (see section 6), which works with Sora-generated videos from your history.
+
+~~Example (not currently available):~~
+```bash
+# This will NOT work - video inpainting is restricted
+sora-cli --file fight-scene.mp4 -p "Add energy aura effects and speed lines" -o enhanced-fight.mp4
 ```
 
-Notes
-- Progress and status are written to stderr; stdout carries only the video bytes for piping.
-- Cameos (personal likeness features) are not supported via the API - they require the Sora mobile app.
+## Important Notes
+
+- **⚠️ Videos expire after 1 hour!** Once a video completes, you have ~1 hour to download it before it becomes unavailable for download. This CLI automatically downloads upon completion. Videos will still be available for remixes, however.
+- **Cameos** (personal likeness features) are not supported via the API - they require the Sora mobile app.
 - Video generation history is stored in `~/.sora-cli/history.json` (limited to 100 most recent entries).
-- Remix shortcuts: `@last` (most recent), `@0`, `@1`, etc. (by index), or filename lookup.
-- Default video format is landscape (1280x720). Use `--portrait` for 720x1280 or `--landscape` to be explicit.
-- Default duration is 12 seconds. Valid values: `--seconds 4`, `--seconds 8`, or `--seconds 12`.
