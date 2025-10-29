@@ -1,0 +1,26 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+sora-cli
+
+# Build and editor files
+dist/
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Cache
+**/.cache/
+**/tmp/
+
+# Environment files
+.env
+
+# Files
+*.mp4
